@@ -13,41 +13,35 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-package cli
+package fs
 
 import (
 	"os"
-	"../fs"
+	"io/ioutil"
 )
 
-type CLI struct {
-	fs fs.Filesystem
-}
-
-// Exec executes shell command given as parameter
-func (cli* CLI) LS(path string) {
-	cli.fs.GetDirContents(path)
-}
-
-func (cli* CLI) CP(src string, dst string) error {
-	err := os.Rename(src, dst)
-	return err
-}
-
-func (cli* CLI) RM(path string) error {
-	err := os.Remove(path)
-	return err
-}
-
-func (cli* CLI) MKDIR(path string, perm os.FileMode) error {
-	err := os.Mkdir(path, perm)
-	return err
-}
-
-func (cli* CLI) WGET(url string) {
+type Filesystem struct {
 
 }
 
-func (cli* CLI) IFCONFIG(iface string) {
+func (fs *Filesystem) Mkdir(path string) {
+	os.Mkdir(path, 0777)
+}
 
+func (fs* Filesystem) Rm(path string) {
+	os.Remove(path)
+}
+
+func (fs* Filesystem) GetDirContents(path string) ([]os.FileInfo, error){
+	files, err := ioutil.ReadDir("./")
+	return files, err
+}
+
+func (fs* Filesystem) CreateEmptyFile(path string, sizeKb int64) {
+	fp, err := os.Create(path)
+	if err != nil {
+		zeroByte := make([]byte, 1)
+		fp.Write(zeroByte)
+		fp.Close()
+	}
 }

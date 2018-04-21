@@ -3,41 +3,64 @@ package downloader
 import (
 	"os"
 	"net/http"
-	"io"
+	"sync"
+	"../fs"
 )
 
 type Downloader struct {
-
+	wg sync.WaitGroup
+	filePath string
+	url string
+	fileSize int64
+	downloadedBytes int64
 }
 
-
-func (dl *Downloader) Write(p []byte) (int, error) {
-	n := len(p)
-	wc.Total += uint64(n)
-	wc.PrintProgress()
-	return n, nil
-}
-
-func Download(dl* Downloader, url string, filepath string) error {
-	out, err := os.Create(filepath + ".tmp")
-	if err != nil {
-		return err
+func (dl* Downloader) dl(start int64, end int32) error {
+	client := &http.Client{
+		CheckRedirect: nil,
 	}
-	defer out.Close()
-
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", dl.url, nil)
+	req.Header.Add("Range", `bytes=%d-%d`)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	counter := &Downloader{}
-	_, err = io.Copy(out, io.TeeReader(resp.Body, counter))
+	file, _ := os.Open(dl.filePath + ".tmp")
+	file.Seek(start, 0)
 
-	err = os.Rename(filepath+".tmp", filepath)
-	if err != nil {
-		return err
+	buff := make([]byte, 4096)
+	resp.Body.Read(buff)
+	file.Write(buff)
+
+	if dl.downloadedBytes == dl.fileSize {
+		err = os.Rename(dl.filePath+".tmp", dl.filePath)
+		if err != nil {
+			return err
+		}
 	}
+	defer dl.wg.Done()
 
 	return nil
+}
+
+func (dl* Downloader) Download(url string, filePath string, parts int) error {
+	if parts > 0 && parts < 8 {
+		dl.url = url
+		dl.filePath = filePath
+		dl.wg.Add(parts)
+
+		resp, err := http.Get(dl.url)
+		if err != nil {
+			return err
+		}
+
+		dl.fileSize = resp.ContentLength
+
+		fs := fs.Filesystem{}
+		fs.CreateEmptyFile(dl.filePath, dl.fileSize)
+
+		go dl.dl(0, 100)
+	}
 }
