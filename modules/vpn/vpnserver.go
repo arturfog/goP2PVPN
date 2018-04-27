@@ -12,7 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+// along with goP2PVPN.  If not, see <http://www.gnu.org/licenses/>.
 package vpn
 
 import (
@@ -21,6 +21,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"sync"
+	"../cli"
 )
 
 func DBG(msg string) {
@@ -34,10 +35,11 @@ type VPNServer struct {
 	key string
 	waitGroup *sync.WaitGroup
 	address string
+	shell cli.Shell
 }
 
 func NewVPNServer(_wg *sync.WaitGroup) * VPNServer {
-	return &VPNServer{false, nil, false, "", _wg,""}
+	return &VPNServer{false, nil, false, "", _wg,"", cli.Shell{}}
 }
 
 func (vps *VPNServer) Connect(_address string, _key string) error{
@@ -66,16 +68,21 @@ func (vps *VPNServer) work() {
 	if err != nil {
 		fmt.Println("client unable to send data " + err.Error())
 	}
-	//for vps.do_work {
-	// listen for reply
+
 	_, err = bufio.NewReader(vps.conn).Read(buff)
 	if err == nil {
 		vps.handlePeer(string(buff))
 	} else {
 		fmt.Printf("Some error %v\n", err)
 	}
-	//}
+
 	defer vps.waitGroup.Done()
+}
+
+func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
+	if code == CMD_EXEC_SHELL {
+		vps.shell.Exec("ls", "/tmp")
+	}
 }
 
 func (vps *VPNServer) handlePeer(address string) {
@@ -83,15 +90,18 @@ func (vps *VPNServer) handlePeer(address string) {
 
 	buff := make([]byte, 2048)
 	fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
-	vps.conn.WriteToUDP([]byte("server\n"), PeerAddr)
-	vps.conn.WriteToUDP([]byte("server\n"), PeerAddr)
-	vps.conn.WriteToUDP([]byte("server\n"), PeerAddr)
-	fmt.Println("server waiting for messages from " + PeerAddr.String())
+
+	for i:=0; i<3; i++ {
+		vps.conn.WriteToUDP([]byte{CMD_SERVER_HELLO, 0x00}, PeerAddr)
+	}
+	vps.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
+
 	for vps.do_work {
 		n, addr, error := vps.conn.ReadFromUDP(buff)
 		if error == nil {
-			msg := string(buff[0:n])
-			fmt.Printf("Message from peer: %s %s\n", addr.String(), msg)
+			msg := string(buff[1:n])
+			vps.handleMsg(buff[0], msg, PeerAddr)
+			fmt.Printf("Server got Message from peer: %s %s\n", addr.String(), msg)
 		} else {
 			fmt.Printf("Some error %v\n", error)
 		}
@@ -103,10 +113,6 @@ func (vps *VPNServer) handlePeer(address string) {
 func (vps *VPNServer) Disconnect() {
 	vps.do_work = false
 	DBG("Server disconnecting")
-
-}
-
-func (vps *VPNServer) GetFile() {
 
 }
 

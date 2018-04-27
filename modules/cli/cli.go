@@ -12,12 +12,13 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+// along with goP2PVPN.  If not, see <http://www.gnu.org/licenses/>.
 package cli
 
 import (
 	"os"
 	"../fs"
+	"fmt"
 )
 
 type CLI struct {
@@ -26,6 +27,7 @@ type CLI struct {
 
 // Exec executes shell command given as parameter
 func (cli* CLI) LS(path string) {
+	fmt.Println("LS !!!")
 	cli.fs.GetDirContents(path)
 }
 
@@ -40,6 +42,7 @@ func (cli* CLI) RM(path string) error {
 }
 
 func (cli* CLI) MKDIR(path string, perm os.FileMode) error {
+	fmt.Println("MKDIR !!!")
 	err := os.Mkdir(path, perm)
 	return err
 }

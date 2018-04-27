@@ -13,19 +13,10 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with goP2PVPN.  If not, see <http://www.gnu.org/licenses/>.
-package cli
+package vpn
 
-type Shell struct {
+const CMD_READY byte = 0xFF
+const CMD_CLIENT_HELLO byte = 0xCD
+const CMD_SERVER_HELLO byte = 0xAB
+const CMD_EXEC_SHELL byte = 0x01
 
-}
-
-func (sh *Shell) Exec(cmd string, arg string) {
-	cl := CLI{}
-	switch cmd {
-	case "ls":
-		cl.LS(arg)
-	case "mkdir":
-		cl.MKDIR(arg, 0777)
-	}
-
-}

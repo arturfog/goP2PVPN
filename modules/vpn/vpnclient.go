@@ -12,7 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+// along with goP2PVPN.  If not, see <http://www.gnu.org/licenses/>.
 package vpn
 
 import (
@@ -83,14 +83,26 @@ func (vpc *VPNClient) handlePeer(address string) {
 	if err != nil {
 		fmt.Println("client unable to send data " + err.Error())
 	}
-	vpc.conn.WriteToUDP([]byte("client\n"), PeerAddr)
-	vpc.conn.WriteToUDP([]byte("client\n"), PeerAddr)
-	fmt.Println("client waiting for messages from " + PeerAddr.String())
+
+	for i:=0; i < 3; i++ {
+		vpc.conn.WriteToUDP([]byte{CMD_CLIENT_HELLO, 0x00}, PeerAddr)
+	}
+	vpc.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
+
 	for vpc.do_work {
 		n, addr, error := vpc.conn.ReadFromUDP(buff)
 		if error == nil {
 			msg := string(buff[0:n])
-			fmt.Printf("Message from peer: %s %s\n", addr.String(), msg)
+			cmd := buff[0]
+			fmt.Printf("Client got message from peer: %s %s\n", addr.String(), msg)
+
+			if cmd == CMD_READY {
+				cmdBytes := []byte("ls /tmp/")
+				bytesToSend := []byte{CMD_EXEC_SHELL}
+				bytesToSend = append(bytesToSend, cmdBytes...)
+
+				vpc.conn.WriteToUDP(bytesToSend, PeerAddr)
+			}
 		} else {
 			fmt.Printf("Some error %v\n", error)
 		}
