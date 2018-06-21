@@ -99,11 +99,15 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, cgui *vpn.ClientGUI, sgui *vpn.S
 		{
 			if nk.NkButtonLabel(ctx, "VPN Client") > 0 {
 				log.Println("[INFO] starting client ...")
+				nk.NkWindowShow(ctx, "Please select VPN mode", nk.Hidden)
+				nk.NkWindowShow(ctx, "VPN Server", nk.Hidden)
 				nk.NkWindowShow(ctx, "VPN Client", nk.Shown)
 			}
 			if nk.NkButtonLabel(ctx, "VPN Server") > 0 {
 				log.Println("[INFO] starting server ...")
+				nk.NkWindowShow(ctx, "Please select VPN mode", nk.Hidden)
 				nk.NkWindowShow(ctx, "VPN Client", nk.Hidden)
+				nk.NkWindowShow(ctx, "VPN Server", nk.Shown)
 			}
 		}
 	}
