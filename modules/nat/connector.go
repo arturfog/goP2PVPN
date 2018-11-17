@@ -52,8 +52,8 @@ func (con *Connector) exchangeIP(key string, clientAddr *net.UDPAddr, serverConn
 }
 
 func (con *Connector) listen(port int) {
-	ServerAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
-	ServerConn, _ := net.ListenUDP("udp", ServerAddr)
+	ServerAddr, _ := net.ResolveUDPAddr("udp4", ":"+strconv.Itoa(port))
+	ServerConn, _ := net.ListenUDP("udp4", ServerAddr)
 	buf := make([]byte, 1024)
 	fmt.Println("Listenning on port: " + strconv.Itoa(port))
 	for {

@@ -43,7 +43,7 @@ func NewVPNServer() *VPNServer {
 
 func (vps *VPNServer) Connect(_address string, _key string) error {
 	vps.address = _address
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 
 	if err != nil {
 		vps.do_work = false
@@ -59,7 +59,7 @@ func (vps *VPNServer) Connect(_address string, _key string) error {
 
 func (vps *VPNServer) work() {
 	buff := make([]byte, 2048)
-	ServerAddr, _ := net.ResolveUDPAddr("udp", vps.address)
+	ServerAddr, _ := net.ResolveUDPAddr("udp4", vps.address)
 	// send to socket
 	fmt.Println("Server sending key: " + vps.key)
 	_, err := vps.conn.WriteToUDP([]byte(vps.key), ServerAddr)
@@ -83,24 +83,28 @@ func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
 
 func (vps *VPNServer) handlePeer(address string) {
 	fmt.Println("address: " + address)
-	PeerAddr, _ := net.ResolveUDPAddr("udp", address)
+	PeerAddr, err := net.ResolveUDPAddr("udp4", address)
 
-	buff := make([]byte, 2048)
-	fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
+	if err != nil {
+		fmt.Println("server resolve udp addr: " + err.Error())
+	} else {
+		buff := make([]byte, 2048)
+		fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
 
-	for i := 0; i < 3; i++ {
-		vps.conn.WriteToUDP([]byte{CMD_SERVER_HELLO, 0x00}, PeerAddr)
-	}
-	vps.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
+		for i := 0; i < 3; i++ {
+			vps.conn.WriteToUDP([]byte{CMD_SERVER_HELLO, 0x00}, PeerAddr)
+		}
+		vps.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
 
-	for vps.do_work {
-		n, addr, error := vps.conn.ReadFromUDP(buff)
-		if error == nil {
-			msg := string(buff[1:n])
-			vps.handleMsg(buff[0], msg, PeerAddr)
-			fmt.Printf("Server got Message from peer: %s %s\n", addr.String(), msg)
-		} else {
-			fmt.Printf("Some error %v\n", error)
+		for vps.do_work {
+			n, addr, error := vps.conn.ReadFromUDP(buff)
+			if error == nil {
+				msg := string(buff[1:n])
+				vps.handleMsg(buff[0], msg, PeerAddr)
+				fmt.Printf("Server got Message from peer: %s %s\n", addr.String(), msg)
+			} else {
+				fmt.Printf("Some error %v\n", error)
+			}
 		}
 	}
 }

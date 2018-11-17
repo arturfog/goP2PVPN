@@ -14,6 +14,5 @@ mac_32: main.go
 
 clean:
 	rm gui
-	rm main
 
 .PHONY: run all clean

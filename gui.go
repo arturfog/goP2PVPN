@@ -33,6 +33,7 @@ func makeServerPage() ui.Control {
 
 	vbox.Append(ui.NewLabel("Server address:"), false)
 	ipEntry := ui.NewEntry()
+	ipEntry.SetText("127.0.0.1:8081")
 	vbox.Append(ipEntry, false)
 
 	vbox.Append(ui.NewLabel("Token:"), false)
@@ -73,6 +74,7 @@ func makeClientPage() ui.Control {
 
 	vbox.Append(ui.NewLabel("Server address:"), false)
 	ipEntry := ui.NewEntry()
+	ipEntry.SetText("127.0.0.1:8081")
 	vbox.Append(ipEntry, false)
 
 	vbox.Append(ui.NewLabel("Token:"), false)

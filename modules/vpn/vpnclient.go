@@ -37,7 +37,7 @@ func NewVPNClient() *VPNClient {
 
 func (vpc *VPNClient) Connect(_address string, _key string) error {
 	vpc.address = _address
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 
 	if err != nil {
 		vpc.do_work = false
@@ -55,7 +55,7 @@ func (vpc *VPNClient) Connect(_address string, _key string) error {
 
 func (vpc *VPNClient) start() {
 	buff := make([]byte, 2048)
-	ServerAddr, _ := net.ResolveUDPAddr("udp", vpc.address)
+	ServerAddr, _ := net.ResolveUDPAddr("udp4", vpc.address)
 	// send to socket
 	fmt.Println("Client sending key: " + vpc.key)
 	//_, err := vpc.conn.Write([]byte(vpc.key))
@@ -74,36 +74,40 @@ func (vpc *VPNClient) start() {
 
 func (vpc *VPNClient) handlePeer(address string) {
 	fmt.Println("address: " + address)
-	PeerAddr, _ := net.ResolveUDPAddr("udp", address)
+	PeerAddr, err := net.ResolveUDPAddr("udp4", address)
 
-	buff := make([]byte, 2048)
-	fmt.Println("client punching hole to " + PeerAddr.String() + " via " + vpc.conn.LocalAddr().String())
-	_, err := vpc.conn.WriteToUDP([]byte("client\n"), PeerAddr)
 	if err != nil {
-		fmt.Println("client unable to send data " + err.Error())
-	}
+		fmt.Println("client resolve udp addr: " + err.Error())
+	} else {
+		buff := make([]byte, 2048)
+		fmt.Println("client punching hole to " + PeerAddr.String() + " via " + vpc.conn.LocalAddr().String())
+		_, err = vpc.conn.WriteToUDP([]byte("client\n"), PeerAddr)
+		if err != nil {
+			fmt.Println("client unable to send data " + err.Error())
+		}
 
-	for i := 0; i < 3; i++ {
-		vpc.conn.WriteToUDP([]byte{CMD_CLIENT_HELLO, 0x00}, PeerAddr)
-	}
-	vpc.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
+		for i := 0; i < 3; i++ {
+			vpc.conn.WriteToUDP([]byte{CMD_CLIENT_HELLO, 0x00}, PeerAddr)
+		}
+		vpc.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
 
-	for vpc.do_work {
-		n, addr, error := vpc.conn.ReadFromUDP(buff)
-		if error == nil {
-			msg := string(buff[0:n])
-			cmd := buff[0]
-			fmt.Printf("Client got message from peer: %s %s\n", addr.String(), msg)
+		for vpc.do_work {
+			n, addr, error := vpc.conn.ReadFromUDP(buff)
+			if error == nil {
+				msg := string(buff[0:n])
+				cmd := buff[0]
+				fmt.Printf("Client got message from peer: %s %s\n", addr.String(), msg)
 
-			if cmd == CMD_READY {
-				cmdBytes := []byte("ls /tmp/")
-				bytesToSend := []byte{CMD_EXEC_SHELL}
-				bytesToSend = append(bytesToSend, cmdBytes...)
+				if cmd == CMD_READY {
+					cmdBytes := []byte("ls /tmp/")
+					bytesToSend := []byte{CMD_EXEC_SHELL}
+					bytesToSend = append(bytesToSend, cmdBytes...)
 
-				vpc.conn.WriteToUDP(bytesToSend, PeerAddr)
+					vpc.conn.WriteToUDP(bytesToSend, PeerAddr)
+				}
+			} else {
+				fmt.Printf("Some error %v\n", error)
 			}
-		} else {
-			fmt.Printf("Some error %v\n", error)
 		}
 	}
 }
