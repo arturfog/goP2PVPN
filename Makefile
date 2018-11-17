@@ -1,5 +1,5 @@
 run: gui
-	./$^
+	GODEBUG=netdns=1 ./$^
 
 all: gui run
 

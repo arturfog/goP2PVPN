@@ -20,7 +20,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net"
-
+	"strings"
+	"strconv"
 	"../cli"
 )
 
@@ -82,12 +83,18 @@ func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
 }
 
 func (vps *VPNServer) handlePeer(address string) {
-	fmt.Println("address: " + address)
-	PeerAddr, err := net.ResolveUDPAddr("udp4", address)
+	addr_arr := strings.Split(address, ":")
+        host := addr_arr[0]
+        port := addr_arr[1]
+        fmt.Println("serv address: " + host + " port: " + port)
 
-	if err != nil {
-		fmt.Println("server resolve udp addr: " + err.Error())
-	} else {
+        iport, _ := strconv.Atoi(strings.Trim(port, "\x00"))
+	//fmt.Println("error: " + err.Error())
+        fmt.Println("iport: " + strconv.Itoa(iport))
+        PeerAddr := &net.UDPAddr{IP: net.ParseIP(host), Port: iport}
+
+	//PeerAddr, _ := net.ResolveUDPAddr("udp4", address)
+	{
 		buff := make([]byte, 2048)
 		fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
 
