@@ -16,11 +16,11 @@
 package vpn
 
 import (
-	"fmt"
-	"net"
 	"bufio"
 	"crypto/rand"
-	"sync"
+	"fmt"
+	"net"
+
 	"../cli"
 )
 
@@ -29,20 +29,19 @@ func DBG(msg string) {
 }
 
 type VPNServer struct {
-	debug bool
-	conn *net.UDPConn
+	debug   bool
+	conn    *net.UDPConn
 	do_work bool
-	key string
-	waitGroup *sync.WaitGroup
+	key     string
 	address string
-	shell cli.Shell
+	shell   cli.Shell
 }
 
-func NewVPNServer(_wg *sync.WaitGroup) * VPNServer {
-	return &VPNServer{false, nil, false, "", _wg,"", cli.Shell{}}
+func NewVPNServer() *VPNServer {
+	return &VPNServer{false, nil, false, "", "", cli.Shell{}}
 }
 
-func (vps *VPNServer) Connect(_address string, _key string) error{
+func (vps *VPNServer) Connect(_address string, _key string) error {
 	vps.address = _address
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 
@@ -53,15 +52,14 @@ func (vps *VPNServer) Connect(_address string, _key string) error{
 		vps.conn = conn
 		vps.do_work = true
 		vps.key = _key
-		vps.waitGroup.Add(1)
 		go vps.work()
 		return nil
 	}
 }
 
 func (vps *VPNServer) work() {
-	buff :=  make([]byte, 2048)
-	ServerAddr,_ := net.ResolveUDPAddr("udp",vps.address)
+	buff := make([]byte, 2048)
+	ServerAddr, _ := net.ResolveUDPAddr("udp", vps.address)
 	// send to socket
 	fmt.Println("Server sending key: " + vps.key)
 	_, err := vps.conn.WriteToUDP([]byte(vps.key), ServerAddr)
@@ -75,8 +73,6 @@ func (vps *VPNServer) work() {
 	} else {
 		fmt.Printf("Some error %v\n", err)
 	}
-
-	defer vps.waitGroup.Done()
 }
 
 func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
@@ -86,12 +82,13 @@ func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
 }
 
 func (vps *VPNServer) handlePeer(address string) {
-	PeerAddr,_ := net.ResolveUDPAddr("udp",address)
+	fmt.Println("address: " + address)
+	PeerAddr, _ := net.ResolveUDPAddr("udp", address)
 
 	buff := make([]byte, 2048)
 	fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
 
-	for i:=0; i<3; i++ {
+	for i := 0; i < 3; i++ {
 		vps.conn.WriteToUDP([]byte{CMD_SERVER_HELLO, 0x00}, PeerAddr)
 	}
 	vps.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
@@ -106,8 +103,6 @@ func (vps *VPNServer) handlePeer(address string) {
 			fmt.Printf("Some error %v\n", error)
 		}
 	}
-
-	defer vps.waitGroup.Done()
 }
 
 func (vps *VPNServer) Disconnect() {

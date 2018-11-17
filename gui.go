@@ -1,6 +1,7 @@
 package main
 
 import (
+	"./modules/vpn"
 	"github.com/andlabs/ui"
 	_ "github.com/andlabs/ui/winmanifest"
 )
@@ -25,44 +26,73 @@ func (areaHandler) KeyEvent(a *ui.Area, ke *ui.AreaKeyEvent) (handled bool) {
 }
 
 func makeServerPage() ui.Control {
+	vps := vpn.NewVPNServer()
+
 	vbox := ui.NewVerticalBox()
 	vbox.SetPadded(true)
 
-	vbox.Append(ui.NewLabel("This is a label. Right now, labels can only span one line."), false)
+	vbox.Append(ui.NewLabel("Server address:"), false)
 	ipEntry := ui.NewEntry()
-	ipEntry.SetReadOnly(true)
 	vbox.Append(ipEntry, false)
 
-	vbox.Append(ui.NewLabel("This is a label. Right now, labels can only span one line."), false)
+	vbox.Append(ui.NewLabel("Token:"), false)
 	tokenEntry := ui.NewEntry()
 	tokenEntry.SetReadOnly(true)
 	vbox.Append(tokenEntry, false)
 
-	vbox.Append(ui.NewLabel("This is a label. Right now, labels can only span one line."), false)
+	tokenButton := ui.NewButton("Generate token")
+	tokenButton.OnClicked(func(*ui.Button) {
+		key := vps.GenKey()
+		tokenEntry.SetText(key)
+	})
+	vbox.Append(tokenButton, false)
+
+	vbox.Append(ui.NewLabel("Password:"), false)
 	passEntry := ui.NewEntry()
-	passEntry.SetReadOnly(true)
 	vbox.Append(passEntry, false)
 
-	button := ui.NewButton("Open File")
-	button.OnClicked(func(*ui.Button) {
+	connectButton := ui.NewButton("Connect")
+	connectButton.OnClicked(func(*ui.Button) {
+		vps.Connect(ipEntry.Text(), tokenEntry.Text())
 	})
-	vbox.Append(button, false)
+	vbox.Append(connectButton, false)
+
+	vbox.Append(ui.NewLabel("Status:"), false)
+	connectionStatus := ui.NewEntry()
+	connectionStatus.SetReadOnly(true)
+	vbox.Append(connectionStatus, false)
+
 	return vbox
 }
 
 func makeClientPage() ui.Control {
+	vpc := vpn.NewVPNClient()
+
 	vbox := ui.NewVerticalBox()
 	vbox.SetPadded(true)
 
-	vbox.Append(ui.NewLabel("This is a label. Right now, labels can only span one line."), false)
+	vbox.Append(ui.NewLabel("Server address:"), false)
 	ipEntry := ui.NewEntry()
-	ipEntry.SetReadOnly(true)
 	vbox.Append(ipEntry, false)
 
-	vbox.Append(ui.NewLabel("This is a label. Right now, labels can only span one line."), false)
+	vbox.Append(ui.NewLabel("Token:"), false)
 	tokenEntry := ui.NewEntry()
-	tokenEntry.SetReadOnly(true)
 	vbox.Append(tokenEntry, false)
+
+	vbox.Append(ui.NewLabel("Password:"), false)
+	passEntry := ui.NewEntry()
+	vbox.Append(passEntry, false)
+
+	button := ui.NewButton("Connect")
+	button.OnClicked(func(*ui.Button) {
+		vpc.Connect(ipEntry.Text(), tokenEntry.Text())
+	})
+	vbox.Append(button, false)
+
+	vbox.Append(ui.NewLabel("Status:"), false)
+	connectionStatus := ui.NewEntry()
+	connectionStatus.SetReadOnly(true)
+	vbox.Append(connectionStatus, false)
 
 	return vbox
 }
@@ -90,6 +120,9 @@ func setupUI() {
 
 	tab.Append("Client", makeClientPage())
 	tab.SetMargined(1, true)
+
+	tab.Append("Settings", makeClientPage())
+	tab.SetMargined(2, true)
 
 	mainwin.Show()
 }

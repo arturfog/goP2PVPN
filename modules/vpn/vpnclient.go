@@ -16,28 +16,26 @@
 package vpn
 
 import (
-	"strings"
-	"net"
-	"net/http"
 	"bufio"
 	"fmt"
-	"sync"
+	"net"
+	"net/http"
+	"strings"
 )
 
 type VPNClient struct {
-	debug bool
-	conn *net.UDPConn
+	debug   bool
+	conn    *net.UDPConn
 	do_work bool
-	key string
-	waitGroup *sync.WaitGroup
+	key     string
 	address string
 }
 
-func NewVPNClient(_wg *sync.WaitGroup) * VPNClient {
-	return &VPNClient{false, nil, false, "", _wg, ""}
+func NewVPNClient() *VPNClient {
+	return &VPNClient{false, nil, false, "", ""}
 }
 
-func (vpc *VPNClient) Connect(_address string, _key string) error{
+func (vpc *VPNClient) Connect(_address string, _key string) error {
 	vpc.address = _address
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 
@@ -48,7 +46,7 @@ func (vpc *VPNClient) Connect(_address string, _key string) error{
 		vpc.conn = conn
 		vpc.do_work = true
 		vpc.key = _key
-		vpc.waitGroup.Add(1)
+
 		go vpc.start()
 		fmt.Println("")
 		return nil
@@ -56,8 +54,8 @@ func (vpc *VPNClient) Connect(_address string, _key string) error{
 }
 
 func (vpc *VPNClient) start() {
-	buff :=  make([]byte, 2048)
-	ServerAddr,_ := net.ResolveUDPAddr("udp", vpc.address)
+	buff := make([]byte, 2048)
+	ServerAddr, _ := net.ResolveUDPAddr("udp", vpc.address)
 	// send to socket
 	fmt.Println("Client sending key: " + vpc.key)
 	//_, err := vpc.conn.Write([]byte(vpc.key))
@@ -75,7 +73,8 @@ func (vpc *VPNClient) start() {
 }
 
 func (vpc *VPNClient) handlePeer(address string) {
-	PeerAddr,_ := net.ResolveUDPAddr("udp",address)
+	fmt.Println("address: " + address)
+	PeerAddr, _ := net.ResolveUDPAddr("udp", address)
 
 	buff := make([]byte, 2048)
 	fmt.Println("client punching hole to " + PeerAddr.String() + " via " + vpc.conn.LocalAddr().String())
@@ -84,7 +83,7 @@ func (vpc *VPNClient) handlePeer(address string) {
 		fmt.Println("client unable to send data " + err.Error())
 	}
 
-	for i:=0; i < 3; i++ {
+	for i := 0; i < 3; i++ {
 		vpc.conn.WriteToUDP([]byte{CMD_CLIENT_HELLO, 0x00}, PeerAddr)
 	}
 	vpc.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
@@ -107,8 +106,6 @@ func (vpc *VPNClient) handlePeer(address string) {
 			fmt.Printf("Some error %v\n", error)
 		}
 	}
-
-	defer vpc.waitGroup.Done()
 }
 
 func (vpc *VPNClient) UploadFile(path string) {
@@ -133,7 +130,7 @@ func (vpc *VPNClient) GetPublicIP(r *http.Request) string {
 		addresses := strings.Split(r.Header.Get(h), ",")
 		// march from right to left until we get a public address
 		// that will be the address right before our proxy.
-		for i := len(addresses) -1 ; i >= 0; i-- {
+		for i := len(addresses) - 1; i >= 0; i-- {
 			ip := strings.TrimSpace(addresses[i])
 			// header can contain spaces too, strip those out.
 			realIP := net.ParseIP(ip)

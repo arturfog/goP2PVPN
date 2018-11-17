@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with goP2PVPN.  If not, see <http://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
-	"net"
 	"fmt"
+	"net"
 	"strconv"
 )
 
@@ -31,7 +30,7 @@ func (con *Connector) init() {
 	con.connectionsList = make(map[string]*net.UDPAddr)
 }
 
-func (con *Connector) addToList (key string, addr *net.UDPAddr) {
+func (con *Connector) addToList(key string, addr *net.UDPAddr) {
 	if con.connectionsList[key] == nil {
 		con.connectionsList[key] = addr
 	}
@@ -53,16 +52,16 @@ func (con *Connector) exchangeIP(key string, clientAddr *net.UDPAddr, serverConn
 }
 
 func (con *Connector) listen(port int) {
-	ServerAddr,_ := net.ResolveUDPAddr("udp",":" + strconv.Itoa(port))
+	ServerAddr, _ := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(port))
 	ServerConn, _ := net.ListenUDP("udp", ServerAddr)
 	buf := make([]byte, 1024)
-	fmt.Println("Listenning on port" + strconv.Itoa(port))
+	fmt.Println("Listenning on port: " + strconv.Itoa(port))
 	for {
 		n, addr, error := ServerConn.ReadFromUDP(buf)
 		if error == nil {
 			key := string(buf[0:n])
 
-			fmt.Print("Key received:", key)
+			fmt.Println("Key received:", key, "from address: ", addr)
 			if con.isOnList(key) == false {
 				con.addToList(key, addr)
 			} else {

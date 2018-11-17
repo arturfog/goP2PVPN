@@ -1,8 +1,7 @@
-run: main.go
-	go run $^
+run: gui
+	./$^
 
-all: main.go
-	go build $^
+all: gui run
 
 gui: gui.go
 	go build $^
