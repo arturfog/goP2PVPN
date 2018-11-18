@@ -16,41 +16,9 @@
 package cli
 
 import (
-	"os"
 	"../fs"
-	"fmt"
 )
 
 type CLI struct {
 	fs fs.Filesystem
-}
-
-// Exec executes shell command given as parameter
-func (cli* CLI) LS(path string) {
-	fmt.Println("LS !!!")
-	cli.fs.GetDirContents(path)
-}
-
-func (cli* CLI) CP(src string, dst string) error {
-	err := os.Rename(src, dst)
-	return err
-}
-
-func (cli* CLI) RM(path string) error {
-	err := os.Remove(path)
-	return err
-}
-
-func (cli* CLI) MKDIR(path string, perm os.FileMode) error {
-	fmt.Println("MKDIR !!!")
-	err := os.Mkdir(path, perm)
-	return err
-}
-
-func (cli* CLI) WGET(url string) {
-
-}
-
-func (cli* CLI) IFCONFIG(iface string) {
-
 }

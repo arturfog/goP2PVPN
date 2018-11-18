@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"strconv"
+
 	"../cli"
 )
 
@@ -43,7 +43,7 @@ func NewVPNServer() *VPNServer {
 }
 
 func (vps *VPNServer) Connect(_address string, _key string) error {
-	vps.address = _address
+	vps.address = strings.Trim(_address, "\x00")
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 
 	if err != nil {
@@ -78,23 +78,22 @@ func (vps *VPNServer) work() {
 
 func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
 	if code == CMD_EXEC_SHELL {
-		vps.shell.Exec("ls", "/tmp")
+		cmd := strings.Split(msg, " ")
+		if len(cmd) > 1 {
+			vps.shell.Exec(cmd[0], cmd[1])
+		} else {
+			vps.shell.Exec(cmd[0], "")
+		}
 	}
 }
 
 func (vps *VPNServer) handlePeer(address string) {
-	addr_arr := strings.Split(address, ":")
-        host := addr_arr[0]
-        port := addr_arr[1]
-        fmt.Println("serv address: " + host + " port: " + port)
+	fmt.Println("address: " + address)
+	PeerAddr, err := net.ResolveUDPAddr("udp4", strings.Trim(address, "\x00"))
 
-        iport, _ := strconv.Atoi(strings.Trim(port, "\x00"))
-	//fmt.Println("error: " + err.Error())
-        fmt.Println("iport: " + strconv.Itoa(iport))
-        PeerAddr := &net.UDPAddr{IP: net.ParseIP(host), Port: iport}
-
-	//PeerAddr, _ := net.ResolveUDPAddr("udp4", address)
-	{
+	if err != nil {
+		fmt.Println("server resolve udp addr: " + err.Error())
+	} else {
 		buff := make([]byte, 2048)
 		fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
 

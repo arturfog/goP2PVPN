@@ -15,17 +15,19 @@
 // along with goP2PVPN.  If not, see <http://www.gnu.org/licenses/>.
 package cli
 
-type Shell struct {
+import (
+	"fmt"
+	"log"
+	"os/exec"
+)
 
+type Shell struct {
 }
 
 func (sh *Shell) Exec(cmd string, arg string) {
-	cl := CLI{}
-	switch cmd {
-	case "ls":
-		cl.LS(arg)
-	case "mkdir":
-		cl.MKDIR(arg, 0777)
+	out, err := exec.Command(cmd, arg).Output()
+	if err != nil {
+		log.Fatal(err)
 	}
-
+	fmt.Println("Command finished with out: " + string(out))
 }

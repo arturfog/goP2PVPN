@@ -20,20 +20,21 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 type VPNClient struct {
 	debug   bool
-	conn    *net.UDPConn
+	Conn    *net.UDPConn
 	do_work bool
 	key     string
 	address string
+	Peer    *net.UDPAddr
 }
 
 func NewVPNClient() *VPNClient {
-	return &VPNClient{false, nil, false, "", ""}
+	return &VPNClient{false, nil, false, "", "", nil}
 }
 
 func (vpc *VPNClient) Connect(_address string, _key string) error {
@@ -44,7 +45,7 @@ func (vpc *VPNClient) Connect(_address string, _key string) error {
 		vpc.do_work = false
 		return err
 	} else {
-		vpc.conn = conn
+		vpc.Conn = conn
 		vpc.do_work = true
 		vpc.key = _key
 
@@ -60,12 +61,12 @@ func (vpc *VPNClient) start() {
 	// send to socket
 	fmt.Println("Client sending key: " + vpc.key)
 	//_, err := vpc.conn.Write([]byte(vpc.key))
-	_, err := vpc.conn.WriteToUDP([]byte(vpc.key), ServerAddr)
+	_, err := vpc.Conn.WriteToUDP([]byte(vpc.key), ServerAddr)
 	if err != nil {
 		fmt.Println("client unable to send data " + err.Error())
 	}
 	// listen for reply
-	_, err = bufio.NewReader(vpc.conn).Read(buff)
+	_, err = bufio.NewReader(vpc.Conn).Read(buff)
 	if err == nil {
 		vpc.handlePeer(string(buff))
 	} else {
@@ -82,35 +83,35 @@ func (vpc *VPNClient) handlePeer(address string) {
 	iport, _ := strconv.Atoi(strings.Trim(port, "\x00"))
 	//fmt.Println("error: " + err.Error())
 	fmt.Println("iport: " + strconv.Itoa(iport))
-	PeerAddr := &net.UDPAddr{IP: net.ParseIP(host), Port: iport}
+	vpc.Peer = &net.UDPAddr{IP: net.ParseIP(host), Port: iport}
 
 	//PeerAddr, _ := net.ResolveUDPAddr("udp4", address)
 	{
 		buff := make([]byte, 2048)
-		fmt.Println("client punching hole to " + PeerAddr.String() + " via " + vpc.conn.LocalAddr().String())
-		_, err := vpc.conn.WriteToUDP([]byte("client\n"), PeerAddr)
+		fmt.Println("client punching hole to " + vpc.Peer.String() + " via " + vpc.Conn.LocalAddr().String())
+		_, err := vpc.Conn.WriteToUDP([]byte("client\n"), vpc.Peer)
 		if err != nil {
 			fmt.Println("client unable to send data " + err.Error())
 		}
 
 		for i := 0; i < 3; i++ {
-			vpc.conn.WriteToUDP([]byte{CMD_CLIENT_HELLO, 0x00}, PeerAddr)
+			vpc.Conn.WriteToUDP([]byte{CMD_CLIENT_HELLO, 0x00}, vpc.Peer)
 		}
-		vpc.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
+		vpc.Conn.WriteToUDP([]byte{CMD_READY, 0x00}, vpc.Peer)
 
 		for vpc.do_work {
-			n, addr, error := vpc.conn.ReadFromUDP(buff)
+			n, addr, error := vpc.Conn.ReadFromUDP(buff)
 			if error == nil {
 				msg := string(buff[0:n])
 				cmd := buff[0]
 				fmt.Printf("Client got message from peer: %s %s\n", addr.String(), msg)
 
 				if cmd == CMD_READY {
-					cmdBytes := []byte("ls /tmp/")
-					bytesToSend := []byte{CMD_EXEC_SHELL}
-					bytesToSend = append(bytesToSend, cmdBytes...)
+					//cmdBytes := []byte("ls /tmp/")
+					//bytesToSend := []byte{CMD_EXEC_SHELL}
+					//bytesToSend = append(bytesToSend, cmdBytes...)
 
-					vpc.conn.WriteToUDP(bytesToSend, PeerAddr)
+					//vpc.conn.WriteToUDP(bytesToSend, vpc.peer)
 				}
 			} else {
 				fmt.Printf("Some error %v\n", error)
@@ -130,8 +131,8 @@ func (vpc *VPNClient) DownloadFile(path string) {
 func (vpc *VPNClient) Disconnect() {
 	DBG("Client disconnecting")
 	vpc.do_work = false
-	if vpc.conn != nil {
-		vpc.conn.Close()
+	if vpc.Conn != nil {
+		vpc.Conn.Close()
 	}
 }
 
