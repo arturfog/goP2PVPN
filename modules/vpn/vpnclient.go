@@ -25,16 +25,17 @@ import (
 )
 
 type VPNClient struct {
-	debug   bool
-	Conn    *net.UDPConn
-	do_work bool
-	key     string
-	address string
-	Peer    *net.UDPAddr
+	debug    bool
+	Conn     *net.UDPConn
+	do_work  bool
+	key      string
+	address  string
+	Peer     *net.UDPAddr
+	Callback func(output string)
 }
 
 func NewVPNClient() *VPNClient {
-	return &VPNClient{false, nil, false, "", "", nil}
+	return &VPNClient{false, nil, false, "", "", nil, nil}
 }
 
 func (vpc *VPNClient) Connect(_address string, _key string) error {
@@ -102,16 +103,16 @@ func (vpc *VPNClient) handlePeer(address string) {
 		for vpc.do_work {
 			n, addr, error := vpc.Conn.ReadFromUDP(buff)
 			if error == nil {
-				msg := string(buff[0:n])
-				cmd := buff[0]
-				fmt.Printf("Client got message from peer: %s %s\n", addr.String(), msg)
+				if len(buff) > 1 {
+					msg := string(buff[1:n])
+					cmd := buff[0]
+					fmt.Printf("Client got message from peer: %s %s\n", addr.String(), msg)
 
-				if cmd == CMD_READY {
-					//cmdBytes := []byte("ls /tmp/")
-					//bytesToSend := []byte{CMD_EXEC_SHELL}
-					//bytesToSend = append(bytesToSend, cmdBytes...)
-
-					//vpc.conn.WriteToUDP(bytesToSend, vpc.peer)
+					if cmd == CMD_READY {
+						if vpc.Callback != nil {
+							vpc.Callback(msg)
+						}
+					}
 				}
 			} else {
 				fmt.Printf("Some error %v\n", error)

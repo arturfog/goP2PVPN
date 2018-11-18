@@ -36,10 +36,11 @@ type VPNServer struct {
 	key     string
 	address string
 	shell   cli.Shell
+	Peer    *net.UDPAddr
 }
 
 func NewVPNServer() *VPNServer {
-	return &VPNServer{false, nil, false, "", "", cli.Shell{}}
+	return &VPNServer{false, nil, false, "", "", cli.Shell{}, nil}
 }
 
 func (vps *VPNServer) Connect(_address string, _key string) error {
@@ -79,34 +80,42 @@ func (vps *VPNServer) work() {
 func (vps *VPNServer) handleMsg(code byte, msg string, peerAddr *net.UDPAddr) {
 	if code == CMD_EXEC_SHELL {
 		cmd := strings.Split(msg, " ")
+		out := ""
 		if len(cmd) > 1 {
-			vps.shell.Exec(cmd[0], cmd[1])
+			out = vps.shell.Exec(cmd[0], cmd[1])
 		} else {
-			vps.shell.Exec(cmd[0], "")
+			out = vps.shell.Exec(cmd[0], "")
 		}
+
+		bytesToSend := []byte{CMD_READY}
+		bytesToSend = append(bytesToSend, []byte(out)...)
+		vps.conn.WriteToUDP(bytesToSend, vps.Peer)
+
+		//fmt.Println("Output:" + out)
 	}
 }
 
 func (vps *VPNServer) handlePeer(address string) {
 	fmt.Println("address: " + address)
-	PeerAddr, err := net.ResolveUDPAddr("udp4", strings.Trim(address, "\x00"))
+	peer, err := net.ResolveUDPAddr("udp4", strings.Trim(address, "\x00"))
+	vps.Peer = peer
 
 	if err != nil {
 		fmt.Println("server resolve udp addr: " + err.Error())
 	} else {
 		buff := make([]byte, 2048)
-		fmt.Println("server punching hole to " + PeerAddr.String() + " via " + vps.conn.LocalAddr().String())
+		fmt.Println("server punching hole to " + vps.Peer.String() + " via " + vps.conn.LocalAddr().String())
 
 		for i := 0; i < 3; i++ {
-			vps.conn.WriteToUDP([]byte{CMD_SERVER_HELLO, 0x00}, PeerAddr)
+			vps.conn.WriteToUDP([]byte{CMD_SERVER_HELLO, 0x00}, vps.Peer)
 		}
-		vps.conn.WriteToUDP([]byte{CMD_READY, 0x00}, PeerAddr)
+		vps.conn.WriteToUDP([]byte{CMD_READY, 0x00}, vps.Peer)
 
 		for vps.do_work {
 			n, addr, error := vps.conn.ReadFromUDP(buff)
 			if error == nil {
 				msg := string(buff[1:n])
-				vps.handleMsg(buff[0], msg, PeerAddr)
+				vps.handleMsg(buff[0], msg, vps.Peer)
 				fmt.Printf("Server got Message from peer: %s %s\n", addr.String(), msg)
 			} else {
 				fmt.Printf("Some error %v\n", error)

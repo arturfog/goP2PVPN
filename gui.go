@@ -86,16 +86,21 @@ func makeClientPage() ui.Control {
 	return vbox
 }
 
+var shellOutput *ui.MultilineEntry
+
 func makeShellPage() ui.Control {
 	vbox := ui.NewVerticalBox()
 	vbox.SetPadded(true)
 
 	vbox.Append(ui.NewLabel("Shell:"), false)
-	shellOutput := ui.NewMultilineEntry()
+	shellOutput = ui.NewMultilineEntry()
 	shellOutput.SetReadOnly(true)
 	vbox.Append(shellOutput, false)
 
 	clrBtn := ui.NewButton("Clear")
+	clrBtn.OnClicked(func(*ui.Button) {
+		shellOutput.SetText("")
+	})
 	vbox.Append(clrBtn, false)
 
 	vbox.Append(ui.NewLabel("Input:"), false)
@@ -104,6 +109,11 @@ func makeShellPage() ui.Control {
 
 	execBtn := ui.NewButton("Execute")
 	execBtn.OnClicked(func(*ui.Button) {
+		shellOutput.Append("$" + shellInput.Text() + "\n")
+		vpc.Callback = func(output string) {
+			//fmt.Printf("callback2: %v %#v %T", output, output, output)
+			shellOutput.Append(output)
+		}
 		command := strings.Trim(shellInput.Text(), "\x00")
 		cmdBytes := []byte(command)
 		bytesToSend := []byte{vpn.CMD_EXEC_SHELL}

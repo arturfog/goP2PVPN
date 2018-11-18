@@ -16,7 +16,6 @@
 package cli
 
 import (
-	"fmt"
 	"log"
 	"os/exec"
 )
@@ -24,10 +23,12 @@ import (
 type Shell struct {
 }
 
-func (sh *Shell) Exec(cmd string, arg string) {
+func (sh *Shell) Exec(cmd string, arg string) string {
 	out, err := exec.Command(cmd, arg).Output()
 	if err != nil {
 		log.Fatal(err)
+
+		return ""
 	}
-	fmt.Println("Command finished with out: " + string(out))
+	return string(out)
 }
